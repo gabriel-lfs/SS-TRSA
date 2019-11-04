@@ -1,6 +1,7 @@
 from flask import Flask, request, abort, jsonify
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
+from Crypto.Util.Padding import pad, unpad
 from http.client import OK, UNPROCESSABLE_ENTITY
 import uuid
 from os import getenv
@@ -24,11 +25,7 @@ with open("./aes_key", "wb+") as file:
 @app.route('/encrypt', methods=['POST'])
 def encrypt():
     content = request.data
-
-    length = len(content)
-    length %= 16
-    if length > 0:
-        content += b'\x80' + b'\0' * (15 - length)
+    content = pad(content, 16)
     aes_cypher = AES.new(cifra_privada.decrypt(key), AES.MODE_CBC, IV=b'\0' * 16)
 
     filename = uuid.uuid4()
@@ -53,7 +50,7 @@ def decrypt(filename):
 
     aes_cypher = AES.new(cifra_privada.decrypt(key), AES.MODE_CBC, IV=b'\0' * 16)
 
-    return aes_cypher.decrypt(content), OK
+    return unpad(aes_cypher.decrypt(content), 16), OK
 
 
 if __name__ == "__main__":
